@@ -41,7 +41,16 @@ def text_tokenize(text, regex=r'\W+'):
     text = text.split()
     return text
 
+# python decorator
+def log_ngram_prob(func):
+    def log_ngram(bigram, *args, **kwargs):
+        prob = func(bigram, *args, **kwargs)
+        print('word: {}, prob: {}'.format(bigram, prob))
+        return prob
 
+    return log_ngram
+
+@log_ngram_prob
 def get_bigram_prob(bigram, unigram_count, bigram_count, eps=1e-5):
     """calculate probability of a bigram
     
@@ -52,6 +61,7 @@ def get_bigram_prob(bigram, unigram_count, bigram_count, eps=1e-5):
     bigram_prob = (bigram_count[bigram] + eps) * 1.0 / (len(bigram_count) * (1 + eps))
     return bigram_prob
 
+@log_ngram_prob
 def get_mle_prob(bigram, unigram_count, bigram_count, eps=1e-5):
     """calculate probability of a bigram with MLE
     
