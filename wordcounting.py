@@ -8,6 +8,7 @@ wordcounting example of CL HW 1
 
 import re
 import nltk
+from nltk import sent_tokenize
 from collections import Counter
 import numpy as np
 
@@ -47,7 +48,6 @@ def get_mle_prob(bigram, unigram_count, bigram_count):
     """
     assert len(bigram) == 2
     print(bigram)
-    print(unigram_count['I'])
     bigram_prob = bigram_count[bigram] * 1.0 / unigram_count[bigram[0]]
     return bigram_prob
 
@@ -66,8 +66,9 @@ def get_prob_sent(sent, unigram_count, bigram_count, mode='mle'):
     """
     assert mode in ('mle', 'bigram')
 
-    sent = re.sub("/W+", "", sent)
+    sent = re.sub("/W+", " ", sent)
     sent = SENT_START + ' ' + sent + ' ' + SENT_END
+    sent = sent.lower()
     sent_split = sent.split()
     sent_bigram = nltk.bigrams(sent_split)
 
@@ -93,8 +94,8 @@ def get_corpus_counts(corpus_path):
     """
     corpus_list = []
     with open(corpus_path, 'r') as corpus:
-        for sent in corpus:
-            sent = re.sub(r'[^\w-]+', '', sent) # string
+        for sent in sent_tokenize(corpus.read()):
+            sent = re.sub(r'\W+', ' ', sent) # string
             sent = sent.lower() # string
             sent = SENT_START + ' ' + sent + ' ' + SENT_END # string
             sent = sent.split() # list of words
@@ -110,33 +111,8 @@ def main():
     and split it into a list(data_split)
     """
     unigram_count, bigram_count = get_corpus_counts(FILE_PATH)
-    # print(unigram_count)
-    get_prob_sent(QSTRING, unigram_count, bigram_count, mode='mle')
-    # print(bigram_count)
-
+    prob = get_prob_sent(QSTRING, unigram_count, bigram_count, mode='bigram')
+    print(prob)
     
-
-    # count words in list(data_split), if word already in list, pass, but if not,
-    # add it to the current wordcount dictionary. Counting frequency
-
-    qstring_split = QSTRING.split()
-    # count bigrams in the text file
-
-    data_bi = Counter(nltk.bigrams(data_split)) 
-    q_bi = Counter(nltk.bigrams(qstring_split))
-    # count the probability of each word in wordcount dictionary
-
-    biprob_list = []
-    for item in q_bi:
-        if item in data_bi:
-            biprob_list.append(q_bi[item]/data_bi[item])
-        else:
-            bi_prob = 0
-    total_prob = 1
-    for prob in biprob_list:
-        total_prob = total_prob * prob
-
-    print(total_prob)
-
 if __name__ == '__main__':
     main()
