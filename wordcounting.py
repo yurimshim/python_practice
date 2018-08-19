@@ -2,50 +2,141 @@
 """
 Created on Wed Aug 15 10:21:03 2018
 
-@author: LG
+@author: Susan shim
+wordcounting example of CL HW 1
 """
-#set current working directory
-import os
-os.chdir("C:/Users/LG/Desktop/2018-S/fython")
-#open file, read the data(data), clear out the other characters and lowercase them
-#and split it into a list(data_split)
+
 import re
 import nltk
-f = open("BROWN_A1.txt", "r")
-data = f.read()
-data_lower = data.lower()
-data_clean = re.sub('/W+','', data_lower)
-data_split = data_clean.split()
-#open a dictionary
-wordcount = {}
-#count words in list(data_split), if word already in list, pass, but if not,
-#add it to the current wordcount dictionary. Counting frequency
-for item in data_split:
-    if item in wordcount.keys():
-        wordcount[item] += 1
-    else:
-        wordcount[item] = 1
- 
-qstring = "I think I will get the best score in the class"
-qstring_split = qstring.split()
-qstring_dict = {}
-for word in qstring_split:
-    if word in qstring_dict.keys():
-        qstring_dict[word] += 1
-    else:
-        qstring_dict[word] = 1
-#count bigrams in the text file
-from nltk import Counter
-data_bi = Counter(nltk.bigrams(data_split)) 
-q_bi = Counter(nltk.bigrams(qstring_split))
-#count the probability of each word in wordcount dictionary
-biprob_list = []
-for item in q_bi:
-    if item in data_bi:
-        biprob_list.append(q_bi[item]/data_bi[item])
-    else:
-        bi_prob = 0
-total_prob = 1
-for prob in biprob_list:
-    total_prob = total_prob * prob
+from collections import Counter
+import numpy as np
 
+FILE_PATH = '/Users/ShinAhnjae/Desktop/dory/python/python_practice/BROWN_A1.txt'
+QSTRING = "I think I will get the best score in the class"
+
+SENT_START = '<s>'
+SENT_END = '</s>'
+
+# P(I | <s>) * P(think | I) * P(I | think) ....
+
+def get_product(probs):
+    """given a list of probabilities, return the product
+    
+    Arguments:
+        probs {list} -- list of proabilities
+    """
+    return np.product(probs)
+
+def get_bigram_prob(bigram, unigram_count, bigram_count):
+    """calculate probability of a bigram
+    
+    Arguments:
+        bi {tuple} -- 2 element bigram
+    """
+    assert len(bigram) == 2
+    bigram_prob = bigram_count[bigram] * 1.0 / len(bigram_count)
+    return bigram_prob
+
+def get_mle_prob(bigram, unigram_count, bigram_count):
+    """calculate probability of a bigram with MLE
+    
+    Arguments:
+        bigram {tuple} -- 2 element of bigram
+        bigram_count {Counter} -- bigram count
+        unigram_count {Counter} -- unigram count
+    """
+    assert len(bigram) == 2
+    print(bigram)
+    print(unigram_count['I'])
+    bigram_prob = bigram_count[bigram] * 1.0 / unigram_count[bigram[0]]
+    return bigram_prob
+
+
+def get_prob_sent(sent, unigram_count, bigram_count, mode='mle'):
+    """Given a sentence calculate the probability !
+    
+    Arguments:
+        sent {string} -- string to calculate prob
+        bigram_count {Counter} -- Counter of bigram counts
+        mode {string} -- one of 'mle' or 'bigram'
+
+        1. tokenize sentence into bigrams
+        2. calculate each bigram's probability
+        3. calculate the product of the probs.
+    """
+    assert mode in ('mle', 'bigram')
+
+    sent = re.sub("/W+", "", sent)
+    sent = SENT_START + ' ' + sent + ' ' + SENT_END
+    sent_split = sent.split()
+    sent_bigram = nltk.bigrams(sent_split)
+
+    sent_probs = []
+    for bigram in sent_bigram:
+        if mode == 'bigram':
+            bigram_prob = get_bigram_prob(bigram, unigram_count, bigram_count)
+        elif mode == 'mle':
+            bigram_prob = get_mle_prob(bigram, unigram_count, bigram_count)
+        else:
+            raise Exception('mode should be one of bigram, mle')
+
+        sent_probs.append(bigram_prob)
+
+    probability = get_product(sent_probs)
+    return probability
+
+def get_corpus_counts(corpus_path):
+    """return a unigram, bigram Counter object of a text corpus file
+    
+    Arguments:
+        file_path {str} -- path to corpus file
+    """
+    corpus_list = []
+    with open(corpus_path, 'r') as corpus:
+        for sent in corpus:
+            sent = re.sub(r'[^\w-]+', '', sent) # string
+            sent = sent.lower() # string
+            sent = SENT_START + ' ' + sent + ' ' + SENT_END # string
+            sent = sent.split() # list of words
+            corpus_list.extend(sent) # list of words
+    
+    unigram_count = Counter(corpus_list)
+    bigram_count = Counter(nltk.bigrams(corpus_list))    
+    return unigram_count, bigram_count
+
+def main():
+    """
+    open file, read the data(data), clear out the other characters and lowercase them
+    and split it into a list(data_split)
+    """
+    unigram_count, bigram_count = get_corpus_counts(FILE_PATH)
+    # print(unigram_count)
+    get_prob_sent(QSTRING, unigram_count, bigram_count, mode='mle')
+    # print(bigram_count)
+
+    
+
+    # count words in list(data_split), if word already in list, pass, but if not,
+    # add it to the current wordcount dictionary. Counting frequency
+
+    qstring_split = QSTRING.split()
+    # count bigrams in the text file
+
+    data_bi = Counter(nltk.bigrams(data_split)) 
+    q_bi = Counter(nltk.bigrams(qstring_split))
+    # count the probability of each word in wordcount dictionary
+
+    biprob_list = []
+    for item in q_bi:
+        if item in data_bi:
+            biprob_list.append(q_bi[item]/data_bi[item])
+        else:
+            bi_prob = 0
+    total_prob = 1
+    for prob in biprob_list:
+        total_prob = total_prob * prob
+
+    print(total_prob)
+
+if __name__ == '__main__':
+    main()
